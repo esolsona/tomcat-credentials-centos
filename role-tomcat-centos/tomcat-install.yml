@@ -5,124 +5,19 @@
 
   tasks:
   
-    - name: Instalando dependencias de sistema
-      yum:
-        name: "{{ packages }}"
-      vars:
-        packages:
-        - wget
-        - lsof
-        - lynx
-        - mlocate
-        - java-1.8.0-openjdk-devel
-
-    - name: Creando grupo
-      group: 
-        name: "{{grupo_servicio}}"
-        state: present
-
-    - name: Creando directorio
-      file:
-        path: "{{directorio_inst}}"
-        state: directory
-
-    - name: Creando usuario tomcat
-      user: name="{{usuario_servicio}}" group="{{grupo_servicio}}" createhome=yes home="{{directorio_inst}}" shell=/bin/nologin
-      become: true
-
-    - name: Copiar software tomcat
-      copy:
-        src: /root/ansible/tomcat-centos/resources/apache-tomcat-{{version}}.tar.gz
-        dest: /tmp/
-        owner: root
-        mode: '0440'
-
-    - name: Instalando tomcat
-      command: tar xvf /tmp/apache-tomcat-{{version}}.tar.gz -C "{{directorio_inst}}" --strip-components=1
-  
-    - name: Cambiando propietario
-      file:
-        path: "{{directorio_inst}}"
-        owner: "{{usuario_servicio}}"
-        recurse: yes
-        group: "{{grupo_servicio}}"
-
-    - name: Cambiando permisos en directorio conf
-      file:
-        path: "{{directorio_inst}}"
-        owner: "{{usuario_servicio}}"
-        recurse: yes
-        group: "{{grupo_servicio}}"
-        mode: g+r
-
-    - name: Cambiando permisos en Catalina
-      file:
-        path: "{{directorio_inst}}/bin/catalina.sh"
-        mode: +x
-
-    - name: Cambiando permisos en startup script
-      file:
-        path: "{{directorio_inst}}/bin/startup.sh"
-        mode: +x
-
-    - name: Creando subdirectorio de Logs
-      file:
-        path: "{{ directorio_inst }}/logs"
-        state: directory
-        owner: "{{usuario_servicio}}"
-        group: "{{grupo_servicio}}"
-
-    - name: Creando subdirectorio de Temporales
-      file:
-        path: "{{ directorio_inst }}/temp"
-        state: directory
-        owner: "{{usuario_servicio}}"
-        group: "{{grupo_servicio}}"
-
-    - name: Creando subdirectorio de Work
-      file:
-        path: "{{directorio_inst}}/work"
-        state: directory
-        owner: "{{usuario_servicio}}"
-        group: "{{grupo_servicio}}"
-
-    - name: Copiar ficheros de servicio
-      copy:
-        src: /root/ansible/tomcat-centos/resources/tomcat.service
-        dest: /etc/systemd/system/
-        owner: "{{usuario_servicio}}"
-
-    - name: Cargar nuevos ficheros de systemd
-      systemd:
-        daemon_reload: yes
-
-    - name: Copiar configuración de seguridad de tomcat
+  - name: Copiar configuración de seguridad de tomcat
       copy:
         src: /root/ansible/tomcat-centos/resources/tomcat-users.xml
         dest: "{{directorio_inst}}/conf"
         owner: "{{usuario_servicio}}"
         group: "{{grupo_servicio}}"
 
-    - name: Modificar directorio de logs en tomcat
-      lineinfile:
-        path: "{{directorio_inst}}/conf/server.xml"
-        regexp: '<Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"'
-        line: <Valve className="org.apache.catalina.valves.AccessLogValve" directory="/var/log/tomcat"
+    - name: Habilitando usuario
+      systemd:
+        name: tomcat.service
+        state: stopped
 
-    - name: Modificar permisos de IP en aplicaciones de gestion del manager de tomcat
-      lineinfile:
-        path: "{{directorio_inst}}/webapps/manager/META-INF/context.xml"
-        regexp: 'allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" />'
-        line: allow=".*" />
-
-    - name: Modificar permisos de IP en aplicaciones de gestion del hostmanager de tomcat
-      lineinfile:
-        path: "{{directorio_inst}}/webapps/host-manager/META-INF/context.xml"
-        regexp: 'allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" />'
-        line: allow=".*" />
-
-    - name: Habilitando e iniciando servicio tomcat
+    - name: Iniciando
       systemd:
         name: tomcat.service
         state: started
-        enabled: yes
