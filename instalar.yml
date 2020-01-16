@@ -1,0 +1,5 @@
+- name: Instalar tomcat
+  hosts: all
+  become: true
+  roles:
+    - role-tomcat-centos

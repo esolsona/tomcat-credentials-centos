@@ -1,0 +1,11 @@
+# General
+version: "8.5.47"
+
+# Usuarios/Grupos
+usuario_servicio: "tomcat"
+grupo_servicio: "tomcat"
+
+
+# Directorio
+directorio_inst: /opt/tomcat
+
